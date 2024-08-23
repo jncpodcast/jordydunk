@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - A Pen by Brad Brock</title>
+  
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jordy's Carnival</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #87CEEB;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            background-image: url('https://static.wixstatic.com/media/7b5caa_f4339a6646f04b9293753b555a87c2a5~mv2.jpg');
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #fff;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+        }
+        #dunkGif {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 2;
+        }
+        #score, #instructions {
+            position: absolute;
+            z-index: 3;
+            color: #fff;
+        }
+        #score {
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            text-align: left;
+        }
+        #instructions {
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            text-align: center;
+            width: 100%;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="300" height="600"></canvas>
+        <img id="dunkGif" src="https://static.wixstatic.com/media/7b5caa_2247e0ad7f384415a3703bd8ddad11b5~mv2.gif" alt="Dunk GIF">
+        <div id="score">Score: 0</div>
+        <div id="instructions">Click to try again</div>
+    </div>
+    <script src="jordy-carnival.js"></script>
+</body>
+</html>
+<!-- partial -->
+  <script  src="./script.js"></script>
+
+</body>
+</html>
