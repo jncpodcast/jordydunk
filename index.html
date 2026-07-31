@@ -1,89 +1,1266 @@
 <!DOCTYPE html>
-<html lang="en" >
-<head>
-  <meta charset="UTF-8">
-  <title>CodePen - Untitled</title>
-  
-
-</head>
-<body>
-<!-- partial:index.partial.html -->
-<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jordy's Carnival</title>
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #000036;
-            font-family: Arial, sans-serif;
-        }
-        #gameContainer {
-            position: relative;
-            width: 300px;
-            height: 600px;
-            background-image: url('https://static.wixstatic.com/media/7b5caa_f4339a6646f04b9293753b555a87c2a5~mv2.jpg');
-            background-size: cover;
-            background-position: center;
-            border: 0px solid #fff;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            width: 100%;
-            height: 100%;
-        }
-        #dunkGif {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            z-index: 2;
-        }
-        #score, #instructions {
-            position: absolute;
-            z-index: 3;
-            color: red; /* Changed to red */
-        }
-        #score {
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
-            text-align: left;
-        }
-        #instructions {
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 20px;
-            text-align: center;
-            width: 100%;
-            display: none;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Dunk Jordy — Deluxe Remaster v2</title>
+<style>
+  :root {
+    --game-w: 300px;
+    --game-h: 600px;
+    --navy: #050536;
+    --navy-2: #0b0b5f;
+    --pink: #ff2d72;
+    --pink-hot: #ff5b95;
+    --cyan: #12d9ff;
+    --yellow: #ffe54d;
+    --orange: #ff9b31;
+    --white: #fffdf2;
+    --ink: #09091d;
+    --hud-bg: rgba(4, 4, 35, 0.82);
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    color: var(--white);
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: var(--navy);
+    background-image:
+      radial-gradient(circle at 18% 20%, rgba(18, 217, 255, 0.18), transparent 22%),
+      radial-gradient(circle at 82% 78%, rgba(255, 45, 114, 0.18), transparent 24%),
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(160deg, #050536, #11116d 58%, #050536);
+    background-size: auto, auto, 24px 24px, 24px 24px, auto;
+    animation: ambientGlow 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes ambientGlow {
+    from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+    to { background-position: 14px -8px, -12px 10px, 0 0, 0 0, 0 0; }
+  }
+
+  .game {
+    position: relative;
+    width: min(var(--game-w), calc(100vw - 20px), calc((100dvh - 20px) / 2));
+    aspect-ratio: 300 / 600;
+    height: auto;
+    max-height: calc(100dvh - 20px);
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 21px;
+    background: var(--navy);
+    box-shadow:
+      0 24px 70px rgba(0,0,0,0.6),
+      0 0 0 3px rgba(255,229,77,0.28),
+      0 0 32px rgba(18,217,255,0.18),
+      inset 0 0 0 1px rgba(255,255,255,0.12);
+  }
+
+  .game:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    background-color: var(--navy);
+    background-image:
+      radial-gradient(circle at center, rgba(18,217,255,0.12), transparent 38%),
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(150deg, #050536, #10105d, #050536);
+    background-size: auto, 30px 30px, 30px 30px, auto;
+  }
+
+  canvas,
+  .frame,
+  .impact-flash,
+  .score-pop,
+  .dunk,
+  .overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  canvas {
+    cursor: crosshair;
+    z-index: 1;
+    touch-action: none;
+  }
+
+  .frame {
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+    border: 4px solid var(--yellow);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 0 0 3px var(--pink),
+      inset 0 0 0 6px rgba(5,5,54,0.82),
+      inset 0 0 24px rgba(18,217,255,0.22);
+  }
+
+  .frame::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 15px;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 4px rgba(255,229,77,0.9));
+    background:
+      radial-gradient(circle, #fffbd1 0 2px, var(--yellow) 2.2px 4px, transparent 4.3px) top left / 24px 12px repeat-x,
+      radial-gradient(circle, #fffbd1 0 2px, var(--yellow) 2.2px 4px, transparent 4.3px) bottom left / 24px 12px repeat-x,
+      radial-gradient(circle, #fffbd1 0 2px, var(--yellow) 2.2px 4px, transparent 4.3px) top left / 12px 24px repeat-y,
+      radial-gradient(circle, #fffbd1 0 2px, var(--yellow) 2.2px 4px, transparent 4.3px) top right / 12px 24px repeat-y;
+    animation: bulbPulse 1.1s steps(2, end) infinite;
+  }
+
+  .frame::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 12px;
+    background:
+      linear-gradient(115deg, rgba(255,255,255,0.11), transparent 18%, transparent 78%, rgba(255,255,255,0.05)),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 4px);
+    mix-blend-mode: screen;
+    opacity: 0.55;
+  }
+
+  @keyframes bulbPulse {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.72; }
+  }
+
+  .impact-flash {
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.96), rgba(255,229,77,0.62) 28%, rgba(255,45,114,0.14) 58%, transparent 74%);
+  }
+
+  .impact-flash.active {
+    animation: impactFlash 420ms ease-out;
+  }
+
+  @keyframes impactFlash {
+    0% { opacity: 0; transform: scale(0.82); }
+    18% { opacity: 0.9; }
+    100% { opacity: 0; transform: scale(1.12); }
+  }
+
+  .score-pop {
+    z-index: 7;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+    font-size: 34px;
+    letter-spacing: 1px;
+    color: var(--yellow);
+    -webkit-text-stroke: 2px var(--pink);
+    text-shadow: 0 3px 0 var(--ink), 0 0 14px rgba(255,229,77,0.9);
+  }
+
+  .score-pop.active {
+    animation: scorePop 720ms cubic-bezier(.2,.8,.2,1);
+  }
+
+  @keyframes scorePop {
+    0% { opacity: 0; transform: translateY(18px) scale(0.55) rotate(-5deg); }
+    22% { opacity: 1; transform: translateY(0) scale(1.15) rotate(2deg); }
+    75% { opacity: 1; transform: translateY(-18px) scale(1); }
+    100% { opacity: 0; transform: translateY(-38px) scale(0.94); }
+  }
+
+  /* Jordy dunk GIF overlay */
+  .dunk {
+    display: none;
+    z-index: 3;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .dunk img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(1.12) contrast(1.05) drop-shadow(0 4px 16px rgba(0,0,0,0.5));
+  }
+
+  /* Start overlay */
+  .overlay {
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background:
+      radial-gradient(circle at 50% 32%, rgba(255,229,77,0.14), transparent 28%),
+      linear-gradient(180deg, rgba(5,5,54,0.72), rgba(5,5,35,0.46));
+    backdrop-filter: blur(2.5px) saturate(1.15);
+  }
+
+  .panel {
+    position: relative;
+    width: 94%;
+    max-width: 268px;
+    padding: 17px 14px 14px;
+    text-align: center;
+    border-radius: 16px;
+    border: 3px solid var(--yellow);
+    background:
+      linear-gradient(180deg, rgba(22,22,105,0.95), rgba(5,5,48,0.96));
+    box-shadow:
+      0 14px 34px rgba(0,0,0,0.58),
+      inset 0 0 0 3px var(--pink),
+      inset 0 0 24px rgba(18,217,255,0.16),
+      0 0 18px rgba(255,229,77,0.25);
+    transform: rotate(-0.7deg);
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 10px;
+    border: 1px dashed rgba(255,255,255,0.28);
+    pointer-events: none;
+  }
+
+  .tag {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    margin-bottom: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: var(--navy);
+    background: var(--yellow);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 3px 0 var(--orange);
+  }
+
+  .logo {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 3px;
+    line-height: 0.82;
+    transform: skew(-4deg) rotate(-1deg);
+  }
+
+  .logo span,
+  .logo strong {
+    display: block;
+    font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .logo span {
+    font-size: 39px;
+    color: var(--cyan);
+    -webkit-text-stroke: 2px var(--navy);
+    text-shadow: 3px 3px 0 var(--pink), 0 0 14px rgba(18,217,255,0.55);
+  }
+
+  .logo strong {
+    margin-top: 5px;
+    font-size: 50px;
+    color: var(--yellow);
+    -webkit-text-stroke: 2px var(--navy);
+    text-shadow: 4px 4px 0 var(--pink), 0 0 16px rgba(255,229,77,0.52);
+  }
+
+  .subtitle {
+    position: relative;
+    z-index: 1;
+    margin: 10px auto 7px;
+    max-width: 218px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--white);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  }
+
+  .howto {
+    position: relative;
+    z-index: 1;
+    margin: 8px 0 10px;
+    padding: 8px 9px;
+    border-radius: 10px;
+    border: 1px solid rgba(18,217,255,0.4);
+    background: rgba(18,217,255,0.08);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .difficulty-label {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin: 2px 0 5px;
+    color: rgba(255,255,255,0.72);
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+
+  .row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .btn {
+    flex: 1;
+    min-height: 42px;
+    border: 2px solid var(--white);
+    border-radius: 10px;
+    padding: 9px 9px;
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+    background: linear-gradient(180deg, var(--pink-hot), var(--pink));
+    box-shadow: 0 5px 0 #9b1242, 0 9px 16px rgba(0,0,0,0.35);
+    transition: transform 70ms ease, box-shadow 70ms ease, filter 120ms ease;
+  }
+
+  .btn:hover { filter: brightness(1.1) saturate(1.1); }
+  .btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #9b1242, 0 4px 8px rgba(0,0,0,0.34);
+  }
+
+  .btn.secondary {
+    color: var(--navy);
+    border-color: var(--white);
+    background: linear-gradient(180deg, #65ecff, var(--cyan));
+    box-shadow: 0 5px 0 #0783a0, 0 9px 16px rgba(0,0,0,0.35);
+  }
+
+  .btn.secondary:active { box-shadow: 0 1px 0 #0783a0, 0 4px 8px rgba(0,0,0,0.34); }
+
+  .select {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin: 0 0 12px;
+  }
+
+  .chip {
+    border: 2px solid rgba(255,255,255,0.42);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.78);
+    padding: 7px 0;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.35px;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition: 120ms ease;
+  }
+
+  .chip.active {
+    color: var(--navy);
+    border-color: var(--white);
+    background: var(--yellow);
+    box-shadow: 0 3px 0 var(--orange), 0 0 12px rgba(255,229,77,0.42);
+    transform: translateY(-1px);
+  }
+
+  .tiny {
+    position: relative;
+    z-index: 1;
+    margin-top: 9px;
+    color: rgba(255,255,255,0.65);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .build-badge {
+    position: absolute;
+    z-index: 5;
+    top: 12px;
+    right: 13px;
+    pointer-events: none;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: var(--navy);
+    background: var(--yellow);
+    font-size: 7px;
+    font-weight: 950;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 0 var(--orange);
+  }
+
+  /* HUD */
+  .hud {
+    position: absolute;
+    left: 9px;
+    right: 9px;
+    bottom: 9px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+    min-height: 45px;
+    padding: 6px 7px;
+    color: var(--white);
+    border: 2px solid var(--yellow);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(10,10,76,0.94), var(--hud-bg));
+    box-shadow:
+      0 5px 0 rgba(0,0,0,0.46),
+      inset 0 0 0 2px var(--pink),
+      inset 0 0 14px rgba(18,217,255,0.14);
+    backdrop-filter: blur(4px);
+  }
+
+  .hud .chunk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .stat {
+    display: grid;
+    gap: 0;
+    min-width: 47px;
+    padding: 3px 6px 2px;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.16);
+  }
+
+  .stat-label {
+    color: rgba(255,255,255,0.58);
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.9px;
+    line-height: 1;
+  }
+
+  .hud .score,
+  .hud .best {
+    font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: 1px;
+    color: var(--yellow);
+    text-shadow: 2px 2px 0 var(--pink);
+  }
+
+  .hud .best {
+    color: var(--cyan);
+    text-shadow: 2px 2px 0 #075b78;
+  }
+
+  .hud .pill {
+    padding: 5px 7px;
+    border-radius: 7px;
+    color: var(--navy);
+    background: var(--white);
+    font-size: 8px;
+    font-weight: 950;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.32);
+  }
+
+  .iconbtn {
+    border: 2px solid rgba(255,255,255,0.8);
+    background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.07));
+    color: var(--white);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.46);
+    transition: transform 70ms ease, box-shadow 70ms ease;
+  }
+
+  .iconbtn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.46);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Keep the 300x600 playfield centered and proportional in fullscreen. */
+  .game:fullscreen canvas,
+  .game:fullscreen .frame,
+  .game:fullscreen .impact-flash,
+  .game:fullscreen .score-pop,
+  .game:fullscreen .dunk,
+  .game:fullscreen .overlay {
+    width: min(100vw, 50vh);
+    height: min(100vh, 200vw);
+    left: calc((100vw - min(100vw, 50vh)) / 2);
+    top: calc((100vh - min(100vh, 200vw)) / 2);
+    right: auto;
+    bottom: auto;
+  }
+
+  .game:fullscreen .hud {
+    width: calc(min(100vw, 50vh) - 18px);
+    left: 50%;
+    right: auto;
+    bottom: calc((100vh - min(100vh, 200vw)) / 2 + 9px);
+    transform: translateX(-50%);
+  }
+
+  .game:fullscreen .build-badge {
+    top: calc((100vh - min(100vh, 200vw)) / 2 + 12px);
+    right: calc((100vw - min(100vw, 50vh)) / 2 + 13px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="300" height="600"></canvas>
-        <img id="dunkGif" src="https://static.wixstatic.com/media/7b5caa_2247e0ad7f384415a3703bd8ddad11b5~mv2.gif" alt="Dunk GIF">
-        <div id="score">Score: 0</div>
-        <div id="instructions">Click to try again</div>
-    </div>
-    <script src="jordy-carnival.js"></script>
-</body>
-</html>
-<!-- partial -->
-  <script  src="./script.js"></script>
+  <div class="game" id="game">
+    <canvas id="canvas" width="300" height="600"></canvas>
+    <div class="frame" aria-hidden="true"></div>
+    <div class="impact-flash" id="impactFlash" aria-hidden="true"></div>
+    <div class="score-pop" id="scorePop" aria-hidden="true">DUNK!</div>
+    <div class="build-badge">DELUXE • BUILD 2</div>
 
+    <!-- Dunk overlay -->
+    <div class="dunk" id="dunk">
+      <img id="dunkImg" src="https://static.wixstatic.com/media/7b5caa_2247e0ad7f384415a3703bd8ddad11b5~mv2.gif" alt="Dunk Jordy">
+    </div>
+
+    <!-- Start overlay -->
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <div class="tag">JNC Arcade • Deluxe Remaster</div>
+        <div class="logo" aria-label="Dunk Jordy">
+          <span>Dunk</span>
+          <strong>Jordy!</strong>
+        </div>
+        <div class="subtitle">One ball. One bullseye. One increasingly nervous Jordy.</div>
+        <div class="howto">🎯 Tap the moving target and watch the ball fly. Nail the bullseye to send Jordy into the drink!</div>
+        <span class="difficulty-label">Choose difficulty</span>
+        <div class="select" id="difficulty">
+          <div class="chip active" data-diff="easy">Easy</div>
+          <div class="chip" data-diff="normal">Normal</div>
+          <div class="chip" data-diff="hard">Hard</div>
+        </div>
+        <div class="row">
+          <button class="btn" id="startBtn" type="button">▶ Start</button>
+          <button class="btn secondary" id="fsBtn" type="button">⛶ Fullscreen</button>
+        </div>
+        <div class="tiny">Sound and fullscreen controls remain available during play.</div>
+      </div>
+    </div>
+
+    <!-- HUD -->
+    <div class="hud" id="hud">
+      <div class="chunk">
+        <div class="stat">
+          <span class="stat-label">SCORE</span>
+          <span class="score" id="score">000</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">BEST</span>
+          <span class="best" id="bestScore">000</span>
+        </div>
+        <span class="pill" id="diffPill">Easy</span>
+      </div>
+      <div class="chunk">
+        <button class="iconbtn" id="muteBtn" type="button" title="Toggle SFX" aria-pressed="false">🔊<span class="sr-only">Toggle Sound</span></button>
+        <button class="iconbtn" id="fsBtnHud" type="button" title="Fullscreen">⛶<span class="sr-only">Fullscreen</span></button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  // Elements
+  const gameEl = document.getElementById('game');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const fsBtn = document.getElementById('fsBtn');
+  const fsBtnHud = document.getElementById('fsBtnHud');
+  const scoreEl = document.getElementById('score');
+  const bestScoreEl = document.getElementById('bestScore');
+  const impactFlashEl = document.getElementById('impactFlash');
+  const scorePopEl = document.getElementById('scorePop');
+  const diffPill = document.getElementById('diffPill');
+  const difficultyEl = document.getElementById('difficulty');
+  const muteBtn = document.getElementById('muteBtn');
+  const dunkEl = document.getElementById('dunk');
+  const dunkImg = document.getElementById('dunkImg');
+
+  const BASE_DUNK_GIF = 'https://static.wixstatic.com/media/7b5caa_2247e0ad7f384415a3703bd8ddad11b5~mv2.gif';
+  const BACKGROUND_SRC = 'https://static.wixstatic.com/media/7b5caa_b2772a8a1cae46e59bd64d09470068a0~mv2.png';
+  const BALL_SRC = 'https://static.wixstatic.com/media/7b5caa_9f4c5c0b1e9e497f8450b64494b716f0~mv2.png';
+
+
+  const HIGH_SCORE_KEY = 'jnc-dunk-jordy-high-score-v2';
+
+  function formatScore(value) {
+    return String(Math.max(0, value)).padStart(3, '0');
+  }
+
+  function readHighScore() {
+    try {
+      const value = Number.parseInt(localStorage.getItem(HIGH_SCORE_KEY) || '0', 10);
+      return Number.isFinite(value) ? Math.max(0, value) : 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function saveHighScore(value) {
+    try {
+      localStorage.setItem(HIGH_SCORE_KEY, String(value));
+    } catch (error) {
+      // Storage can be unavailable in some embedded/private-browser contexts.
+    }
+  }
+
+  function triggerImpactFeedback() {
+    impactFlashEl.classList.remove('active');
+    scorePopEl.classList.remove('active');
+    void impactFlashEl.offsetWidth;
+    impactFlashEl.classList.add('active');
+    scorePopEl.classList.add('active');
+  }
+
+  // Hi-DPI scaling
+  function resizeCanvasToDisplaySize() {
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+    const needResize = canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr);
+    if (needResize) {
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale drawing ops back to CSS pixels
+    }
+    return needResize;
+  }
+
+  // Audio SFX (tiny bleeps that won't be blocked after user gesture)
+  const sfx = {
+    enabled: true,
+    click: new Audio(),
+    splash: new Audio(),
+    whoosh: new Audio(),
+  };
+
+  // Minimal embedded sounds / silence fallback
+  sfx.click.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABYAAAABAAgAZGF0YQgAAAABAQ==';
+  sfx.splash.src = 'data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABYAAAABAAgAZGF0YQwAAAABAQEB';
+  sfx.whoosh.src = 'data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABYAAAABAAgAZGF0YQwAAAABAQEB';
+
+  muteBtn.addEventListener('click', () => {
+    sfx.enabled = !sfx.enabled;
+    muteBtn.textContent = sfx.enabled ? '🔊' : '🔈';
+    muteBtn.setAttribute('aria-pressed', String(!sfx.enabled));
+  });
+
+  // Fullscreen helpers
+  async function goFullscreen() {
+    try {
+      if (!document.fullscreenElement) await gameEl.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch (e) {
+      // iOS Safari may not support fullscreen on arbitrary elements. Ignore safely.
+    }
+  }
+
+  fsBtn.addEventListener('click', goFullscreen);
+  fsBtnHud.addEventListener('click', goFullscreen);
+
+  // Difficulty config
+  const DIFFS = {
+    easy:   { interval: 1400, shrink: 0.94, minRadius: 12 },
+    normal: { interval: 1050, shrink: 0.92, minRadius: 10 },
+    hard:   { interval: 800,  shrink: 0.90, minRadius: 8  },
+  };
+  let diffKey = 'easy';
+
+  difficultyEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    [...difficultyEl.children].forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    diffKey = chip.dataset.diff;
+    diffPill.textContent = chip.textContent;
+  });
+
+  // Preload images
+  const bgImg = new Image();
+  bgImg.src = BACKGROUND_SRC;
+
+  const ballImg = new Image();
+  ballImg.src = BALL_SRC;
+
+  // Game state
+  const target = {
+    x: 150,
+    y: 300,
+    r: 38,
+    hit: false,
+    pulse: 0,
+  };
+
+  let score = 0;
+  let highScore = readHighScore();
+  bestScoreEl.textContent = formatScore(highScore);
+  let lastMoveTime = 0;
+  let moveInterval = DIFFS[diffKey].interval;
+  let running = false;
+  let rafId = null;
+
+  // Thrown ball state
+  const ball = {
+    active: false,
+    x: 0,
+    y: 0,
+    sx: 0,
+    sy: 0,
+    tx: 0,
+    ty: 0,
+    t: 0,
+    dur: 550,
+    rot: 0,
+    size: 40,
+    trail: [],
+  };
+
+  // Eye tracking state. These are now drawn BEHIND the background PNG.
+  const gaze = {
+    x: 150,
+    y: 300
+  };
+
+  const EYES = {
+    enabled: true,
+    showWhites: true,
+    left:  { x: 135, y: 200 },
+    right: { x: 195, y: 200 },
+    whiteRadius: 11,
+    pupilRadius: 4.5,
+    maxTravel: 3.2
+  };
+
+  function resetForStart() {
+    score = 0;
+    scoreEl.textContent = formatScore(0);
+    target.r = 38;
+    target.hit = false;
+    moveInterval = DIFFS[diffKey].interval;
+    placeTargetRandom();
+    lastMoveTime = performance.now();
+    ball.active = false;
+    ball.trail.length = 0;
+  }
+
+  function placeTargetRandom() {
+    const pad = Math.max(target.r + 6, 24);
+    const w = canvas.clientWidth || 300;
+    const h = canvas.clientHeight || 600;
+    target.x = Math.random() * (w - pad * 2) + pad;
+    target.y = Math.random() * (h - pad * 2) + pad;
+  }
+
+  // Drawing helpers
+  function drawBackgroundImage() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+
+    if (bgImg.complete && bgImg.naturalWidth > 0) {
+      ctx.drawImage(bgImg, 0, 0, w, h);
+    } else {
+      ctx.fillStyle = '#000036';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+
+  function drawBackgroundTint() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) / 4, w / 2, h / 2, Math.max(w, h) / 1.1);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.25)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  function circleFill(x, y, r, fill) {
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(r, 2), 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  function ring(x, y, r, stroke, w) {
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(r, 2), 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = w;
+    ctx.stroke();
+  }
+
+  function updateGazeFromEvent(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const point = evt.touches ? evt.touches[0] : evt;
+    if (!point) return;
+    gaze.x = point.clientX - rect.left;
+    gaze.y = point.clientY - rect.top;
+  }
+
+  function drawEye(cx, cy, eyeScale = 1) {
+    const dx = gaze.x - cx;
+    const dy = gaze.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+
+    const maxTravel = EYES.maxTravel * eyeScale;
+    const whiteRadius = EYES.whiteRadius * eyeScale;
+    const pupilRadius = EYES.pupilRadius * eyeScale;
+
+    const px = cx + (dx / len) * maxTravel;
+    const py = cy + (dy / len) * maxTravel;
+
+    ctx.save();
+
+    if (EYES.showWhites) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, whiteRadius, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.96)';
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(px, py, pupilRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(px - 1.2 * eyeScale, py - 1.2 * eyeScale, 1.2 * eyeScale, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawEyes() {
+    if (!EYES.enabled) return;
+    // Keep eyes rendered even while the dunk GIF overlay is preparing/showing.
+    // The GIF sits above the canvas, so this prevents empty cutout eye holes after a hit.
+
+    // Eye coordinates are authored for the 300x600 background image.
+    // Scale them to the canvas size so fullscreen keeps them locked to the image.
+    const scaleX = (canvas.clientWidth || 300) / 300;
+    const scaleY = (canvas.clientHeight || 600) / 600;
+    const eyeScale = (scaleX + scaleY) / 2;
+
+    drawEye(EYES.left.x * scaleX, EYES.left.y * scaleY, eyeScale);
+    drawEye(EYES.right.x * scaleX, EYES.right.y * scaleY, eyeScale);
+  }
+
+  function drawTarget() {
+    const { x, y } = target;
+    const pulse = 1 + 0.035 * Math.sin(target.pulse);
+    const r = target.r * pulse;
+    const spin = target.pulse * 0.42;
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // Neon aura.
+    ctx.globalAlpha = 0.32 + 0.08 * Math.sin(target.pulse);
+    ctx.shadowColor = '#12d9ff';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#12d9ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Rotating carnival tick ring.
+    ctx.globalAlpha = 0.9;
+    ctx.shadowBlur = 0;
+    ctx.rotate(spin);
+    ctx.setLineDash([3.2, 5.4]);
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffe54d';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.rotate(-spin);
+
+    // Bullseye face using proportional rings so it remains crisp when tiny.
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+    circleFill(0, 0, r, '#fffdf2');
+    ring(0, 0, r, '#ff2d72', 2.2);
+    circleFill(0, 0, r * 0.74, '#ff2d72');
+    circleFill(0, 0, r * 0.48, '#fffdf2');
+    circleFill(0, 0, r * 0.23, '#12d9ff');
+
+    // Gloss and center sparkle.
+    ctx.globalAlpha = 0.22;
+    circleFill(-r * 0.2, -r * 0.26, r * 0.42, '#ffffff');
+    ctx.globalAlpha = 0.95;
+    circleFill(-r * 0.055, -r * 0.07, Math.max(1.4, r * 0.055), '#ffffff');
+
+    ctx.restore();
+  }
+
+  // Particles
+  const particles = [];
+
+  function spawnBurst(cx, cy, count = 28) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1 + Math.random() * 2.2;
+      particles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 0.5,
+        life: 600,
+        t: 0,
+        color: ['rgba(18,217,255,0.95)', 'rgba(255,45,114,0.95)', 'rgba(255,229,77,0.95)'][i % 3],
+        size: 1.2 + Math.random() * 2.4
+      });
+    }
+  }
+
+  function stepParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.t += dt;
+      p.vy += 0.003 * dt;
+      p.x += p.vx * dt * 0.06;
+      p.y += p.vy * dt * 0.06;
+      if (p.t >= p.life) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    particles.forEach(p => {
+      const alpha = 1 - p.t / p.life;
+      ctx.fillStyle = p.color.replace(/0\.95\)/, alpha.toFixed(2) + ')');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // Ball trail
+  function stepTrail(dt) {
+    for (let i = ball.trail.length - 1; i >= 0; i--) {
+      const t = ball.trail[i];
+      t.life -= dt;
+      if (t.life <= 0) ball.trail.splice(i, 1);
+    }
+  }
+
+  function drawTrail() {
+    ball.trail.forEach(t => {
+      const a = Math.max(0, t.life / 300);
+      ctx.globalAlpha = a;
+      ctx.drawImage(ballImg, t.x - ball.size * 0.3, t.y - ball.size * 0.3, ball.size * 0.6, ball.size * 0.6);
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  // Ball motion along a quadratic Bezier for arc
+  function quadPoint(t, p0, p1, p2) {
+    const u = 1 - t;
+    return {
+      x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+      y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y
+    };
+  }
+
+  function startThrow(toX, toY) {
+    if (ball.active) return; // ignore spam until it lands
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    ball.sx = w / 2;
+    ball.sy = h - 24;
+    ball.tx = toX;
+    ball.ty = toY;
+    ball.t = 0;
+    ball.rot = 0;
+    ball.active = true;
+    ball.trail.length = 0;
+    if (sfx.enabled) {
+      try { sfx.whoosh.currentTime = 0; sfx.whoosh.play(); } catch (e) {}
+    }
+  }
+
+  function stepBall(dt) {
+    if (!ball.active) return;
+    ball.t += dt;
+    const t = Math.min(1, ball.t / ball.dur);
+
+    // Control point above the line for a nice arc
+    const midX = (ball.sx + ball.tx) / 2;
+    const dist = Math.hypot(ball.tx - ball.sx, ball.ty - ball.sy);
+    const arc = Math.min(180, 80 + dist * 0.15); // px lift
+    const cp = { x: midX, y: Math.min(ball.sy, ball.ty) - arc };
+
+    const p = quadPoint(t, { x: ball.sx, y: ball.sy }, cp, { x: ball.tx, y: ball.ty });
+    ball.x = p.x;
+    ball.y = p.y;
+
+    // Spin based on horizontal velocity
+    ball.rot += 0.02 * (ball.tx - ball.sx);
+
+    // Leave a faint trail
+    ball.trail.push({ x: ball.x, y: ball.y, life: 300 });
+    if (ball.trail.length > 24) ball.trail.shift();
+
+    if (t >= 1) {
+      ball.active = false;
+      setTimeout(() => { ball.trail.length = 0; }, 180);
+    }
+  }
+
+  function drawBall() {
+    if (!ball.active && ball.trail.length === 0) return;
+    drawTrail();
+    if (!ball.active) return;
+    const s = ball.size;
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(ball.rot * 0.001);
+    ctx.drawImage(ballImg, -s / 2, -s / 2, s, s);
+    ctx.restore();
+  }
+
+  // Game loop
+  let prevTime = 0;
+
+  function loop(ts) {
+    rafId = requestAnimationFrame(loop);
+    resizeCanvasToDisplaySize();
+
+    const dt = Math.min(32, ts - prevTime || 16);
+    prevTime = ts;
+
+    // Move target on interval if not in dunk overlay
+    if (running && !isDunkShowing() && ts - lastMoveTime >= moveInterval) {
+      placeTargetRandom();
+      lastMoveTime = ts;
+    }
+
+    // Animate slight pulse
+    target.pulse += dt * 0.01;
+
+    // Step systems
+    stepParticles(dt);
+    stepTrail(dt);
+    stepBall(dt);
+
+    // Draw
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    // Important: eyes are drawn first, then the background image is drawn over them.
+    // Since the background PNG has the eye holes/cutouts, the moving eyes show through naturally.
+    drawEyes();
+    drawBackgroundImage();
+    drawBackgroundTint();
+    drawParticles();
+    drawBall();
+    if (!isDunkShowing()) drawTarget();
+  }
+
+  function isDunkShowing() {
+    return dunkEl.style.display === 'block';
+  }
+
+  function getPointerPosition(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const point = evt.touches ? evt.touches[0] : evt;
+    return {
+      x: point.clientX - rect.left,
+      y: point.clientY - rect.top
+    };
+  }
+
+  // Hit detection + throw. Dunk waits until the ball finishes.
+  function handleClick(evt) {
+    if (!running || isDunkShowing()) return;
+    updateGazeFromEvent(evt);
+
+    const { x, y } = getPointerPosition(evt);
+
+    // Always throw a ball toward the tap/click.
+    startThrow(x, y);
+
+    const dx = x - target.x;
+    const dy = y - target.y;
+    const dist = Math.hypot(dx, dy);
+    const isHit = dist <= target.r;
+
+    if (isHit) {
+      if (sfx.enabled) {
+        try { sfx.splash.currentTime = 0; sfx.splash.play(); } catch (e) {}
+      }
+      score++;
+      scoreEl.textContent = formatScore(score);
+      if (score > highScore) {
+        highScore = score;
+        bestScoreEl.textContent = formatScore(highScore);
+        saveHighScore(highScore);
+      }
+
+      // Increase difficulty immediately, but visually sync splash + dunk after the throw lands.
+      const cfg = DIFFS[diffKey];
+      target.r = Math.max(cfg.minRadius, target.r * cfg.shrink);
+      moveInterval = Math.max(450, moveInterval * 0.92);
+      lastMoveTime = performance.now();
+
+      setTimeout(() => {
+        spawnBurst(target.x, target.y, 42);
+        triggerImpactFeedback();
+        showDunkThenResume();
+      }, ball.dur);
+    } else {
+      if (sfx.enabled) {
+        try { sfx.click.currentTime = 0; sfx.click.play(); } catch (e) {}
+      }
+      spawnBurst(x, y, 10);
+    }
+  }
+
+  canvas.addEventListener('click', handleClick);
+  canvas.addEventListener('mousemove', updateGazeFromEvent);
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    handleClick(e);
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    updateGazeFromEvent(e);
+  }, { passive: false });
+
+  // Show dunk GIF briefly, then continue, restarting the animation each time.
+  let dunkTimer = null;
+
+  function showDunkThenResume() {
+    dunkImg.src = `${BASE_DUNK_GIF}?restart=${Date.now()}`;
+    dunkEl.style.display = 'block';
+    clearTimeout(dunkTimer);
+    dunkTimer = setTimeout(() => {
+      dunkEl.style.display = 'none';
+      dunkImg.src = BASE_DUNK_GIF;
+    }, 1200);
+  }
+
+  // Start/reset
+  startBtn.addEventListener('click', () => {
+    diffPill.textContent = diffKey.charAt(0).toUpperCase() + diffKey.slice(1);
+    overlay.style.display = 'none';
+    if (!rafId) rafId = requestAnimationFrame(loop);
+    resetForStart();
+    running = true;
+  });
+
+  // Allow clicking dunk screen to immediately continue.
+  dunkEl.addEventListener('click', () => {
+    dunkEl.style.display = 'none';
+    dunkImg.src = BASE_DUNK_GIF;
+  });
+
+  // Kick off render loop idle so vignette/idle target shows under overlay.
+  rafId = requestAnimationFrame(loop);
+
+  // Safety: adjust when window resizes.
+  window.addEventListener('resize', () => resizeCanvasToDisplaySize());
+  window.addEventListener('orientationchange', () => setTimeout(resizeCanvasToDisplaySize, 250));
+
+  document.addEventListener('touchmove', (e) => {
+    if (running) e.preventDefault();
+  }, { passive: false });
+
+  // Lightweight sanity checks for future edits.
+  console.assert(typeof handleClick === 'function', 'handleClick exists');
+  console.assert(typeof showDunkThenResume === 'function', 'showDunkThenResume exists');
+  console.assert(typeof placeTargetRandom === 'function', 'placeTargetRandom exists');
+  console.assert(typeof drawEyes === 'function', 'drawEyes exists');
+  console.assert(typeof drawBackgroundImage === 'function', 'drawBackgroundImage exists');
+  console.assert(typeof updateGazeFromEvent === 'function', 'updateGazeFromEvent exists');
+  console.assert(typeof drawEye === 'function', 'drawEye exists');
+  console.assert(typeof triggerImpactFeedback === 'function', 'impact feedback exists');
+  console.assert(typeof formatScore === 'function', 'score formatter exists');
+  console.assert(DIFFS.easy.interval > DIFFS.hard.interval, 'Hard target should move faster than Easy');
+})();
+</script>
 </body>
 </html>
